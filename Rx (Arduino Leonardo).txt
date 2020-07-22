@@ -1,0 +1,104 @@
+
+#include <SPI.h>
+#include <nRF24L01.h>
+#include <RF24.h>
+#include <Mouse.h>
+#include <Keyboard.h>
+RF24 radio(7, 8); // CNS, CE
+const byte address[6] = "00001";
+void setup() {
+pinMode(5,INPUT_PULLUP); //keyboard
+pinMode(4,INPUT_PULLUP); //mouse
+Serial.begin(9600);
+radio.begin();
+radio.openReadingPipe(0, address);
+radio.setPALevel(RF24_PA_MAX);
+radio.startListening();
+Mouse.begin();
+Keyboard.begin();
+}
+
+int Xspeed = 0;
+int Yspeed = 0;
+
+void loop()
+{
+if (radio.available())
+{
+int text[8] = {};
+radio.read(&text, sizeof(text));
+Xspeed = text[5];
+Yspeed = text[6];
+if(digitalRead(5) == LOW) //keyboard
+{
+if(text[1] == -1*Xspeed)
+{
+Keyboard.press('a');
+Keyboard.release('d');
+}
+else if(text[1] == Xspeed)
+{
+Keyboard.press('d');
+Keyboard.release('a');
+}
+else
+{
+Keyboard.release('a');
+Keyboard.release('d');
+}
+
+if(text[2] == -1*Yspeed)
+{
+Keyboard.press('w');
+Keyboard.release('s');
+}
+else if(text[2] == Yspeed)
+{
+Keyboard.press('s');
+Keyboard.release('w');
+}
+else
+{
+Keyboard.release('s');
+Keyboard.release('w');
+}
+
+if(text[3] == 1)
+{
+Keyboard.press('h');
+}
+else
+{
+Keyboard.release('h');
+}
+
+if(text[4] == 1)
+{
+Keyboard.press('n');
+}
+else
+{
+Keyboard.release('n');
+}
+}
+
+else if(digitalRead(4) == LOW) //mouse
+{
+Mouse.move(text[1], text[2], 0);
+if(text[4] == 1)
+{
+Mouse.click(MOUSE_LEFT);
+}
+if(text[3] == 1)
+{
+
+Mouse.click(MOUSE_RIGHT);
+}
+}
+
+else if((digitalRead(4) == HIGH) && (digitalRead(5) == HIGH))
+{
+Keyboard.releaseAll();
+}
+}
+}
